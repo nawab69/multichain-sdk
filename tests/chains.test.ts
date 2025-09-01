@@ -53,6 +53,28 @@ describe('Chain-Specific Address Derivation', () => {
       expect(address1.path).toBe("m/84'/2'/0'/0/0")
       expect(address2.path).toBe("m/84'/2'/1'/0/0")
     })
+
+    it('should generate valid private keys', () => {
+      const address = addressLTC(testSeed, { index: 0 })
+      
+      expect(address.privateKeyHex).toBeDefined()
+      expect(address.privateKeyHex).toMatch(/^[a-f0-9]{64}$/)
+      expect(address.privateKeyHex).not.toContain('0x')
+      
+      // Verify deterministic behavior
+      const address2 = addressLTC(testSeed, { index: 0 })
+      expect(address.privateKeyHex).toBe(address2.privateKeyHex)
+    })
+
+    it('should generate different private keys for different indices', () => {
+      const address1 = addressLTC(testSeed, { index: 0 })
+      const address2 = addressLTC(testSeed, { index: 1 })
+      const address3 = addressLTC(testSeed, { index: 2 })
+      
+      expect(address1.privateKeyHex).not.toBe(address2.privateKeyHex)
+      expect(address2.privateKeyHex).not.toBe(address3.privateKeyHex)
+      expect(address1.privateKeyHex).not.toBe(address3.privateKeyHex)
+    })
   })
 
   describe('DOGE (Dogecoin) Address Derivation', () => {
@@ -104,6 +126,28 @@ describe('Chain-Specific Address Derivation', () => {
         expect(addr.address).toMatch(/^D/)
       })
     })
+
+    it('should generate valid private keys', () => {
+      const address = addressDOGE(testSeed, { index: 0 })
+      
+      expect(address.privateKeyHex).toBeDefined()
+      expect(address.privateKeyHex).toMatch(/^[a-f0-9]{64}$/)
+      expect(address.privateKeyHex).not.toContain('0x')
+      
+      // Verify deterministic behavior
+      const address2 = addressDOGE(testSeed, { index: 0 })
+      expect(address.privateKeyHex).toBe(address2.privateKeyHex)
+    })
+
+    it('should generate different private keys for different indices', () => {
+      const address1 = addressDOGE(testSeed, { index: 0 })
+      const address2 = addressDOGE(testSeed, { index: 1 })
+      const address3 = addressDOGE(testSeed, { index: 2 })
+      
+      expect(address1.privateKeyHex).not.toBe(address2.privateKeyHex)
+      expect(address2.privateKeyHex).not.toBe(address3.privateKeyHex)
+      expect(address1.privateKeyHex).not.toBe(address3.privateKeyHex)
+    })
   })
 
   describe('TRX (Tron) Address Derivation', () => {
@@ -154,6 +198,28 @@ describe('Chain-Specific Address Derivation', () => {
       expect(address1.address).not.toBe(address2.address)
       expect(address1.path).toBe("m/44'/195'/0'/0/0")
       expect(address2.path).toBe("m/44'/195'/1'/0/0")
+    })
+
+    it('should generate valid private keys', () => {
+      const address = addressTRX(testSeed, { index: 0 })
+      
+      expect(address.privateKeyHex).toBeDefined()
+      expect(address.privateKeyHex).toMatch(/^[a-f0-9]{64}$/)
+      expect(address.privateKeyHex).not.toContain('0x')
+      
+      // Verify deterministic behavior
+      const address2 = addressTRX(testSeed, { index: 0 })
+      expect(address.privateKeyHex).toBe(address2.privateKeyHex)
+    })
+
+    it('should generate different private keys for different indices', () => {
+      const address1 = addressTRX(testSeed, { index: 0 })
+      const address2 = addressTRX(testSeed, { index: 1 })
+      const address3 = addressTRX(testSeed, { index: 2 })
+      
+      expect(address1.privateKeyHex).not.toBe(address2.privateKeyHex)
+      expect(address2.privateKeyHex).not.toBe(address3.privateKeyHex)
+      expect(address1.privateKeyHex).not.toBe(address3.privateKeyHex)
     })
   })
 
@@ -220,6 +286,28 @@ describe('Chain-Specific Address Derivation', () => {
       expect(address1.address).toMatch(/^r[a-zA-Z0-9]{25,34}$/)
       expect(address2.address).toMatch(/^r[a-zA-Z0-9]{25,34}$/)
     })
+
+    it('should generate valid private keys', () => {
+      const address = addressXRP(testSeed, { index: 0 })
+      
+      expect(address.privateKeyHex).toBeDefined()
+      expect(address.privateKeyHex).toMatch(/^[a-f0-9]{64}$/)
+      expect(address.privateKeyHex).not.toContain('0x')
+      
+      // Verify deterministic behavior
+      const address2 = addressXRP(testSeed, { index: 0 })
+      expect(address.privateKeyHex).toBe(address2.privateKeyHex)
+    })
+
+    it('should generate different private keys for different indices', () => {
+      const address1 = addressXRP(testSeed, { index: 0 })
+      const address2 = addressXRP(testSeed, { index: 1 })
+      const address3 = addressXRP(testSeed, { index: 2 })
+      
+      expect(address1.privateKeyHex).not.toBe(address2.privateKeyHex)
+      expect(address2.privateKeyHex).not.toBe(address3.privateKeyHex)
+      expect(address1.privateKeyHex).not.toBe(address3.privateKeyHex)
+    })
   })
 
   describe('Cross-Chain Consistency', () => {
@@ -260,6 +348,32 @@ describe('Chain-Specific Address Derivation', () => {
       
       expect(ltc1.address).toBe(ltc2.address)
       expect(doge1.address).toBe(doge2.address)
+    })
+
+    it('should generate unique private keys across all chains', () => {
+      const addresses = [
+        addressLTC(testSeed, { index: 0 }),
+        addressDOGE(testSeed, { index: 0 }),
+        addressTRX(testSeed, { index: 0 }),
+        addressXRP(testSeed, { index: 0 })
+      ]
+      
+      const privateKeys = addresses.map(addr => addr.privateKeyHex)
+      const uniquePrivateKeys = new Set(privateKeys)
+      
+      // All private keys should be unique (different chains, same index)
+      expect(uniquePrivateKeys.size).toBe(4)
+    })
+
+    it('should maintain private key consistency across multiple calls', () => {
+      // Same seed and parameters should generate same private keys
+      const ltc1 = addressLTC(testSeed, { index: 10 })
+      const ltc2 = addressLTC(testSeed, { index: 10 })
+      const ltc3 = addressLTC(testSeed, { index: 10 })
+      
+      expect(ltc1.privateKeyHex).toBe(ltc2.privateKeyHex)
+      expect(ltc2.privateKeyHex).toBe(ltc3.privateKeyHex)
+      expect(ltc1.privateKeyHex).toBe(ltc3.privateKeyHex)
     })
   })
 })
