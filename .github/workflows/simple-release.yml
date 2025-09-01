@@ -13,6 +13,8 @@ on:
         - minor
         - major
 
+# Note: This workflow requires NPM_TOKEN secret (preferably an Automation token that bypasses 2FA)
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -65,7 +67,7 @@ jobs:
         git push origin "v${{ steps.version.outputs.version }}"
         
     - name: Publish to npm
-      run: npm publish
+      run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         

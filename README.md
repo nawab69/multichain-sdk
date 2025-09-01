@@ -13,13 +13,13 @@ A TypeScript SDK for deriving deterministic blockchain addresses from a single B
 ## Installation
 
 ```bash
-npm install @nawab69/multichain-sdk
+npm install @nawab_kibria/multichain-sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { mnemonicToSeed, deriveAddressForChain } from '@nawab69/multichain-sdk'
+import { mnemonicToSeed, deriveAddressForChain } from '@nawab_kibria/multichain-sdk'
 
 const mnemonic = "your twelve or twenty four words here"
 const seed = await mnemonicToSeed(mnemonic)
