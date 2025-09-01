@@ -148,15 +148,21 @@ export function addressSOL(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = `m/44'/501'/${trustWalletAccount}'`
   
   try {
-    const { key } = ed25519.derivePath(path, seed.toString('hex'))
-    const kp = Keypair.fromSeed(key)
+    const { key: priv32 } = ed25519.derivePath(path, seed.toString('hex'))
+    const kp = Keypair.fromSeed(priv32)
     const pub = new PublicKey(kp.publicKey)
+    
+    // For Trust Wallet compatibility, provide the 32-byte private key (seed)
+    const privateKeyHex = Buffer.from(priv32).toString('hex') // 64 hex chars (32 bytes)
     
     return { 
       chain: 'SOL', 
       path, 
       address: pub.toBase58(), 
-      privateKeyHex: Buffer.from(kp.secretKey).toString('hex') 
+      // Trust Wallet format (32-byte private key)
+      privateKeyHex, // 64 hex chars (32 bytes)
+      // Additional format for compatibility
+      privateKeyArray: Array.from(priv32) // 32-byte array
     }
   } catch (error) {
     throw new Error(`Failed to derive Solana address: ${error}`)

@@ -25,6 +25,8 @@ export interface DerivedAddress {
   address: string
   /** hex without 0x unless noted */
   privateKeyHex?: string
+  /** array format private key for Solana alternative import */
+  privateKeyArray?: number[]
   /** optional base58 xpub for UTXO/EVM chains where applicable */
   xpub?: string
 }
