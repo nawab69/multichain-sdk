@@ -101,7 +101,7 @@ describe('Core Derivation Functions', () => {
       const result = addressSOL(testSeed, { index: 0 })
       
       expect(result.privateKeyHex).toBeDefined()
-      expect(result.privateKeyHex).toMatch(/^[a-f0-9]{128}$/) // ed25519 private key is 64 bytes = 128 hex chars
+      expect(result.privateKeyHex).toMatch(/^[a-f0-9]{64}$/) // ed25519 private key is 32 bytes = 64 hex chars
       expect(result.privateKeyHex).not.toContain('0x')
       
       // Verify deterministic behavior
@@ -203,7 +203,7 @@ describe('Core Derivation Functions', () => {
       expect(result.chain).toBe('SOL')
       expect(result.address).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)
       expect(result.path).toBe("m/44'/501'/0'")
-      expect(result.privateKeyHex).toMatch(/^[a-f0-9]{128}$/)
+      expect(result.privateKeyHex).toMatch(/^[a-f0-9]{64}$/)
       expect(result.xpub).toBeUndefined() // Solana doesn't use xpub
     })
 

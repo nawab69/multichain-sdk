@@ -1,7 +1,7 @@
 {
-  "name": "multichain-seed-sdk",
+  "name": "@nawab69/multichain-sdk",
   "version": "0.1.0",
-  "description": "Seed-only, no-encryption SDK to derive addresses for BTC/ETH/BSC/DOGE/LTC/TRX/XRP/SOL from a single mnemonic/seed.",
+  "description": "Multichain SDK to derive deterministic addresses for BTC/ETH/BSC/DOGE/LTC/TRX/XRP/SOL from a single mnemonic/seed.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,12 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test-mnemonic": "node dist/test-mnemonic.js",
-    "typecheck": "tsc -p . --noEmit"
+    "typecheck": "tsc -p . --noEmit",
+    "prepublishOnly": "npm run build && npm run test:run",
+    "prepack": "npm run build",
+    "examples": "node examples/basic-usage.js",
+    "examples:advanced": "node examples/advanced-derivation.js",
+    "examples:typescript": "npx tsc examples/typescript-example.ts --target ES2020 --module ES2020 --outDir examples/dist && node examples/dist/typescript-example.js"
   },
   "keywords": [
     "bip39",
@@ -27,9 +32,38 @@
     "dogecoin",
     "evm",
     "wallet",
-    "address"
+    "address",
+    "hd-wallet",
+    "multichain",
+    "cryptocurrency",
+    "blockchain",
+    "derivation",
+    "seed",
+    "mnemonic"
   ],
   "license": "MIT",
+  "author": {
+    "name": "Nawab69",
+    "email": "nawab69@example.com",
+    "url": "https://github.com/nawab69"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nawab69/multichain-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nawab69/multichain-sdk/issues"
+  },
+  "homepage": "https://github.com/nawab69/multichain-sdk#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "REQUIREMENTS.md"
+  ],
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
     "bip32": "^5.0.0-rc.0",

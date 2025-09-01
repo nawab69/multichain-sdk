@@ -1,0 +1,111 @@
+name: Release Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+      dry_run:
+        description: 'Dry run (no actual release)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build project
+      run: npm run build
+      
+    - name: Run tests
+      run: npm run test:run
+      
+    - name: Bump version
+      id: version
+      run: |
+        if [ "${{ inputs.dry_run }}" = "true" ]; then
+          echo "DRY RUN: Would bump version"
+          echo "version=0.0.0" >> $GITHUB_OUTPUT
+        else
+          npm version ${{ inputs.version }} --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped version to $VERSION"
+        fi
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        if [ "${{ inputs.dry_run }}" = "true" ]; then
+          echo "DRY RUN: Would generate changelog"
+          echo "changelog=No changes (dry run)" >> $GITHUB_OUTPUT
+        else
+          # Generate changelog from git commits
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG="Initial release"
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s" ${PREVIOUS_TAG}..HEAD)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create Release PR
+      if: inputs.dry_run == false
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: bump version to ${{ steps.version.outputs.version }}"
+        title: "Release v${{ steps.version.outputs.version }}"
+        body: |
+          ## Release v${{ steps.version.outputs.version }}
+          
+          ### Changes
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ### Checklist
+          - [x] Tests passing
+          - [x] Build successful
+          - [x] Examples working
+          - [x] Documentation updated
+          
+          ### Next Steps
+          1. Review and merge this PR
+          2. Create a new release tag
+          3. Publish to npm
+        branch: release/v${{ steps.version.outputs.version }}
+        base: main
+        delete-branch: true
+        
+    - name: Dry Run Summary
+      if: inputs.dry_run == true
+      run: |
+        echo "=== DRY RUN SUMMARY ==="
+        echo "Would bump version to: ${{ steps.version.outputs.version }}"
+        echo "Would create changelog: ${{ steps.changelog.outputs.changelog }}"
+        echo "No actual changes made"

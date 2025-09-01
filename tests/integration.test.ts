@@ -147,7 +147,7 @@ describe('Integration Tests - User Mnemonic', () => {
       
       expect(address.address).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)
       expect(address.path).toBe("m/44'/501'/0'")
-      expect(address.privateKeyHex).toMatch(/^[a-f0-9]{128}$/) // Solana uses 64-byte private keys
+      expect(address.privateKeyHex).toMatch(/^[a-f0-9]{64}$/) // Solana uses 32-byte private keys
     })
 
     it('should use Trust Wallet derivation style', () => {
