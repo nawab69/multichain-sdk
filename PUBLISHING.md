@@ -159,7 +159,7 @@ npm version major
 ### 1. Package Already Exists
 ```bash
 # Check if package exists
-npm view @nawab69/multichain-sdk
+npm view @nawab_kibria/multichain-sdk
 
 # If exists, update version
 npm version patch
@@ -200,10 +200,10 @@ npm run build
 ### 1. Verify Package
 ```bash
 # Install your package
-npm install @nawab69/multichain-sdk
+npm install @nawab_kibria/multichain-sdk
 
 # Test in new project
-node -e "console.log(require('@nawab69/multichain-sdk'))"
+node -e "console.log(require('@nawab_kibria/multichain-sdk'))"
 ```
 
 ### 2. Update Documentation

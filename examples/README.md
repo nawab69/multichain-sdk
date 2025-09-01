@@ -97,17 +97,17 @@ All examples use **test mnemonics** that are publicly known and safe for demonst
 
 ### Node.js / CommonJS
 ```javascript
-const { mnemonicToSeed, deriveAddressForChain } = require('@nawab69/multichain-sdk')
+const { mnemonicToSeed, deriveAddressForChain } = require('@nawab_kibria/multichain-sdk')
 ```
 
 ### ES Modules
 ```javascript
-import { mnemonicToSeed, deriveAddressForChain } from '@nawab69/multichain-sdk'
+import { mnemonicToSeed, deriveAddressForChain } from '@nawab_kibria/multichain-sdk'
 ```
 
 ### TypeScript
 ```typescript
-import { mnemonicToSeed, deriveAddressForChain, type Chain } from '@nawab69/multichain-sdk'
+import { mnemonicToSeed, deriveAddressForChain, type Chain } from '@nawab_kibria/multichain-sdk'
 ```
 
 ## 🧪 Testing Examples

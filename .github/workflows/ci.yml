@@ -84,7 +84,7 @@ jobs:
     if: github.event_name == 'release'
     environment:
       name: npm
-      url: https://www.npmjs.com/package/@nawab69/multichain-sdk
+      url: https://www.npmjs.com/package/@nawab_kibria/multichain-sdk
     
     steps:
     - name: Checkout code

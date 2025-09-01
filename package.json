@@ -1,5 +1,5 @@
 {
-  "name": "@nawab69/multichain-sdk",
+  "name": "@nawab_kibria/multichain-sdk",
   "version": "0.1.0",
   "description": "Multichain SDK to derive deterministic addresses for BTC/ETH/BSC/DOGE/LTC/TRX/XRP/SOL from a single mnemonic/seed.",
   "type": "module",
@@ -43,8 +43,8 @@
   ],
   "license": "MIT",
   "author": {
-    "name": "Nawab69",
-    "email": "nawab69@example.com",
+    "name": "nawab_kibria",
+    "email": "nawab_kibria@example.com",
     "url": "https://github.com/nawab69"
   },
   "repository": {
