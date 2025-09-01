@@ -1,0 +1,137 @@
+# .cursorrules
+# Cursor should always work in small, incremental steps and confirm with the user when needed.
+
+PROJECT:
+  name: Multichain Seed SDK
+  purpose: "Seed-only, no-encryption SDK to derive deterministic addresses for BTC/ETH/BSC/DOGE/LTC/TRX/XRP/SOL."
+  primary_lang: TypeScript
+  node_version: ">=20"
+  package_manager: npm
+  test_runner: vitest
+
+GOLDEN_RULES:
+  - "Always do small tasks, part by part."
+  - "If any change may affect public API, behavior, or folder layout, ASK the user first."
+  - "If any error cannot be trivially fixed, SUGGEST a fix plan to the user first. If the user accepts, then implement."
+  - "Everything should be clean, consistent, and well-typed."
+  - "Each step must be unit tested."
+
+DEFAULTS:
+  coding_style:
+    indentation: 2_spaces
+    semicolons: true
+    quotes: single
+    strict_ts: true
+    eslint: recommended
+    prettier: enabled
+  directory_conventions:
+    src: "src/"
+    tests: "tests/"
+    dist: "dist/"
+    docs: "README.md, REQUIREMENTS.md"
+  commits:
+    style: "conventional-commits"
+    examples:
+      - "feat(derive): add DOGE address derivation"
+      - "fix(btc): correct bech32 path handling for account index"
+      - "test(sol): add unit test for ed25519 derivation path"
+  pull_requests:
+    size: "small"
+    include: "what changed, why, tests added, breaking changes"
+
+WORKFLOW:
+  plan_small_steps:
+    - "Break tasks into the tiniest possible increments (≤ ~50 lines diff when feasible)."
+    - "Before coding, summarize the step and ask for confirmation if scope is ambiguous."
+  implement_step:
+    - "Write/update unit tests for the step (TDD preferred when practical)."
+    - "Implement the minimal code to make tests pass."
+    - "Run formatter and linter."
+  verify_step:
+    - "Run unit tests."
+    - "If tests fail and the fix is non-trivial, stop and propose options to the user (A/B)."
+    - "Only proceed after user approval for non-trivial fixes."
+  document_step:
+    - "Update README or inline JSDoc when API surface changes."
+  commit_step:
+    - "Commit with a conventional message."
+  present_step:
+    - "Show a concise diff/summary and test output to the user and ask for feedback before moving on."
+
+ERROR_HANDLING:
+  on_error_detected:
+    - "Stop immediately."
+    - "Show the exact error message and where it occurred."
+    - "Suggest a clear, minimal fix plan; ASK user to approve before applying non-trivial changes."
+  non_trivial_definition:
+    - "Any change that alters public API, affects multiple files, or exceeds ~50 lines."
+
+TESTING:
+  unit_tests_required: true
+  coverage_focus:
+    - "Derivation path building."
+    - "Per-chain address generation happy paths."
+    - "Edge cases: different accounts, change=0/1, index variation."
+  guidelines:
+    - "One test file per module in tests/ mirroring src/."
+    - "Use Vitest with BDD style (describe/it)."
+    - "No network calls in unit tests."
+  examples:
+    - "BTC bech32 P2WPKH address matches regex and is deterministic for same path."
+    - "ETH/BSC address derived from same index are equal and checksum-valid."
+    - "SOL ed25519 keypair stable across runs for same path."
+
+COMMUNICATION_PROTOCOL:
+  when_to_ask_user:
+    - "Before adding or changing public API."
+    - "Before introducing new dependencies."
+    - "When encountering a non-trivial error or architectural fork."
+    - "Before reorganizing directories or renaming files."
+  change_request_template:
+    - "Summary of proposed change."
+    - "Reason/benefit."
+    - "Impact (API/tests/docs)."
+    - "Alternatives (if any)."
+    - "Estimated scope (S/M/L)."
+
+CLEAN_CODE_REQUIREMENTS:
+  - "Keep modules small and single-purpose."
+  - "Prefer pure functions for derivation helpers."
+  - "No dead code, no console logs in library code."
+  - "Type all public exports; avoid any."
+  - "Document exported functions with brief JSDoc."
+
+SECURITY_GUARDRAILS (even if not implemented yet):
+  - "Do NOT include secrets/mnemonics in committed files."
+  - "No network calls in core derivation modules."
+  - "Seed-only v1: no encryption; ensure code paths make that explicit to avoid confusion."
+  - "Avoid side effects on import; exports should be pure functions."
+
+REPO_HEALTH:
+  scripts:
+    - "npm run build  -> compile to dist/"
+    - "npm run test   -> run vitest"
+    - "npm run lint   -> run eslint"
+    - "npm run format -> run prettier"
+    - "npm run dev    -> run example/demo"
+  ci_expectations:
+    - "Run lint + test on every branch."
+    - "Block merges on failing tests."
+    - "Optional: upload coverage artifact."
+
+DEFINITION_OF_DONE (for each step):
+  - "Small, reviewed plan (if ambiguous) and user confirmation when needed."
+  - "Unit tests exist and pass locally."
+  - "Code is formatted and linted."
+  - "Public API changes documented."
+  - "Conventional commit created."
+  - "User review/ack recorded in chat."
+
+APPENDIX:
+  quick_prompts:
+    - "Plan next tiny step"
+    - "Propose fix for error"
+    - "Generate unit tests for function X"
+    - "Show diff and ask for feedback"
+
+# End of .cursorrules
