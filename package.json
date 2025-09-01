@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc -p .",
     "dev": "node dist/demo.js",
+    "test-mnemonic": "node dist/test-mnemonic.js",
     "typecheck": "tsc -p . --noEmit"
   },
   "keywords": ["bip39","bip32","slip44","bitcoin","ethereum","solana","tron","xrp","litecoin","dogecoin","evm","wallet","address"],

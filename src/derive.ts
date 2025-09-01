@@ -44,9 +44,9 @@ function buildPath(chain: Chain, opts?: DeriveOpts): string {
   const change = opts?.change ?? 0
   const index = opts?.index ?? 0
 
-  // Solana commonly uses m/44'/501'/account'/0'
+  // Solana commonly uses m/44'/501'/account' (Trust Wallet style - account level only)
   if (chain === 'SOL') {
-    return `m/${purpose}'/${coin}'/${account}'/0'`
+    return `m/${purpose}'/${coin}'/${account}'`
   }
   return `m/${purpose}'/${coin}'/${account}'/${change}/${index}`
 }
@@ -136,13 +136,31 @@ export function addressXRP(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   return { chain: 'XRP', path, address, privateKeyHex: Buffer.from(node.privateKey!).toString('hex'), xpub }
 }
 
-/** SOL — ed25519 via SLIP-0010 (no xpub concept in BIP32 sense) */
+/** SOL — ed25519 via SLIP-0010 (Trust Wallet style - account level derivation) */
 export function addressSOL(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
-  const path = buildPath('SOL', opts)
-  const { key } = ed25519.derivePath(path, seed.toString('hex')) // 32-byte seed for ed25519
-  const kp = Keypair.fromSeed(key)
-  const pub = new PublicKey(kp.publicKey)
-  return { chain: 'SOL', path, address: pub.toBase58(), privateKeyHex: Buffer.from(kp.secretKey).toString('hex') }
+  // For Trust Wallet Solana, we use account level derivation
+  // m/44'/501'/account' where account increments for different addresses
+  const account = opts?.account ?? 0
+  const index = opts?.index ?? 0
+  
+  // Trust Wallet style: use index as account number
+  const trustWalletAccount = account + index
+  const path = `m/44'/501'/${trustWalletAccount}'`
+  
+  try {
+    const { key } = ed25519.derivePath(path, seed.toString('hex'))
+    const kp = Keypair.fromSeed(key)
+    const pub = new PublicKey(kp.publicKey)
+    
+    return { 
+      chain: 'SOL', 
+      path, 
+      address: pub.toBase58(), 
+      privateKeyHex: Buffer.from(kp.secretKey).toString('hex') 
+    }
+  } catch (error) {
+    throw new Error(`Failed to derive Solana address: ${error}`)
+  }
 }
 
 export function deriveAddressForChain(
