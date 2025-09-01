@@ -76,6 +76,8 @@ git push -u origin main
 In your GitHub repository settings, add:
 - `NPM_TOKEN`: Your npm authentication token
 
+**Note**: `GITHUB_TOKEN` is automatically provided by GitHub - you don't need to create this secret.
+
 ### 4. Test Examples
 ```bash
 # Basic usage

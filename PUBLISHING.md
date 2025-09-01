@@ -22,7 +22,7 @@ npm whoami
 Set these secrets in your GitHub repository:
 
 - `NPM_TOKEN`: Your npm authentication token
-- `GITHUB_TOKEN`: GitHub token (usually auto-provided)
+- `GITHUB_TOKEN`: **Automatically provided by GitHub** - you don't need to create this
 
 ## 📋 Pre-Publishing Checklist
 
@@ -176,7 +176,12 @@ npm login
 npm whoami
 ```
 
-### 3. Build Failed
+### 3. GitHub Token Issues
+- **GITHUB_TOKEN**: This is automatically provided by GitHub - **DO NOT** create this secret manually
+- **Error**: "Secret names must not start with GITHUB_" - This is expected, GitHub handles this automatically
+- **Solution**: Only create the `NPM_TOKEN` secret, ignore GITHUB_TOKEN
+
+### 4. Build Failed
 ```bash
 # Clean and rebuild
 rm -rf dist/
@@ -185,7 +190,7 @@ npm install
 npm run build
 ```
 
-### 4. TypeScript Errors
+### 5. TypeScript Errors
 ```bash
 # Check types
 npm run typecheck
