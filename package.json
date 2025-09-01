@@ -1,6 +1,6 @@
 {
   "name": "@nawab_kibria/multichain-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Multichain SDK to derive deterministic addresses for BTC/ETH/BSC/DOGE/LTC/TRX/XRP/SOL from a single mnemonic/seed.",
   "type": "module",
   "main": "dist/index.js",
