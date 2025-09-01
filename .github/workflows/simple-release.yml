@@ -1,0 +1,78 @@
+name: Simple Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build project
+      run: npm run build
+      
+    - name: Run tests
+      run: npm run test:run
+      
+    - name: Bump version
+      id: version
+      run: |
+        npm version ${{ inputs.version }} --no-git-tag-version
+        VERSION=$(node -p "require('./package.json').version")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Bumped version to $VERSION"
+        
+    - name: Commit version bump
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add package.json package-lock.json
+        git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
+        
+    - name: Create tag
+      run: |
+        git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+        
+    - name: Push changes
+      run: |
+        git push origin main
+        git push origin "v${{ steps.version.outputs.version }}"
+        
+    - name: Publish to npm
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: Create Release Summary
+      run: |
+        echo "## Release v${{ steps.version.outputs.version }} completed successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "- Version bumped to ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Tests passed" >> $GITHUB_STEP_SUMMARY
+        echo "- Build successful" >> $GITHUB_STEP_SUMMARY
+        echo "- Published to npm" >> $GITHUB_STEP_SUMMARY
