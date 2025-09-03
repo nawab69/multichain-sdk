@@ -1,3 +1,5 @@
 export { mnemonicToSeed } from './derive.js'
 export { deriveAddressForChain } from './derive.js'
+export { deriveXPubForChain } from './derive.js'
+export { deriveWatchOnlyAddress } from './derive.js'
 export * from './types.js'

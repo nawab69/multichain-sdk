@@ -32,3 +32,19 @@ export interface DerivedAddress {
   /** optional base58 xpub for UTXO/EVM chains where applicable */
   xpub?: string
 }
+
+export interface XPubResult {
+  chain: Chain
+  path: string
+  xpub: string
+  /** network type (mainnet/testnet) */
+  network: 'mainnet' | 'testnet'
+}
+
+export interface WatchOnlyAddress {
+  chain: Chain
+  path: string
+  address: string
+  /** xpub used for derivation */
+  xpub: string
+}
