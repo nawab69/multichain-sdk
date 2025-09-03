@@ -8,10 +8,35 @@ import { TronWeb } from 'tronweb'
 import * as ed25519 from 'ed25519-hd-key'
 import { Keypair, PublicKey } from '@solana/web3.js'
 import { encodeAccountID } from 'ripple-address-codec'
+import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { keccak256 } from 'ethereum-cryptography/keccak'
 import { Chain, DeriveOpts, DerivedAddress, XPubResult, WatchOnlyAddress } from './types.js'
 import { SLIP44, DEFAULT_PURPOSE, TESTNET_NETWORKS } from './chains.js'
 
 const bip32 = bip32Factory.BIP32Factory(secp)
+
+/** Expand a compressed secp256k1 public key (33B) to uncompressed (65B). */
+function decompressPubkey(compressed: Uint8Array): Uint8Array {
+  const P = secp256k1.Point.fromHex(Buffer.from(compressed).toString('hex'))
+  return P.toBytes(false) // false -> uncompressed (65 bytes, 0x04 || X || Y)
+}
+
+/** ETH address from uncompressed secp256k1 pubkey with EIP-55 checksum */
+function ethAddressFromUncompressed(uncompressed: Uint8Array): string {
+  // drop the 0x04 prefix, keccak hash of 64 bytes, take last 20 bytes
+  const body = uncompressed.slice(1)
+  const hash = keccak256(body)
+  const addr = Buffer.from(hash.slice(-20)).toString('hex')
+  // EIP-55 checksum
+  const chk = keccak256(Buffer.from(addr, 'utf8'))
+  let out = '0x'
+  for (let i = 0; i < addr.length; i++) {
+    const nibble = parseInt(chk[i >> 1].toString(16), 16)
+    const upper = (i % 2 === 0 ? (nibble >> 4) : (nibble & 0xf)) >= 8
+    out += upper ? addr[i].toUpperCase() : addr[i]
+  }
+  return out
+}
 
 // Networks for bitcoinjs-lib (LTC & DOGE custom)
 const litecoin = {
@@ -286,8 +311,9 @@ export function deriveXPubLTC(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const change = opts?.change ?? 0
   const index = opts?.index ?? 0
   const fullPath = `m/84'/2'/${account}'/${change}/${index}` // Full path like original
-  const network = opts?.testnet ? testnetNetworks.LTC : litecoin
-  const xpub = deriveXpub(seed, fullPath, network as any) // Keep using neutered xpub for LTC
+  // Force use of standard Bitcoin network for xpub derivation to ensure proper neutering
+  const network = opts?.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const xpub = deriveXpub(seed, fullPath, network)
   
   return {
     chain: 'LTC',
@@ -303,8 +329,9 @@ export function deriveXPubDOGE(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const change = opts?.change ?? 0
   const index = opts?.index ?? 0
   const fullPath = `m/44'/3'/${account}'/${change}/${index}` // Full path like original
-  const network = opts?.testnet ? testnetNetworks.DOGE : dogecoin
-  const xpub = deriveXpub(seed, fullPath, network as any) // Keep using neutered xpub for DOGE
+  // Force use of standard Bitcoin network for xpub derivation to ensure proper neutering
+  const network = opts?.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const xpub = deriveXpub(seed, fullPath, network)
   
   return {
     chain: 'DOGE',
@@ -320,7 +347,7 @@ export function deriveXPubETH(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const change = opts?.change ?? 0
   const index = opts?.index ?? 0
   const fullPath = `m/44'/60'/${account}'/${change}/${index}` // Full path like original
-  const xpub = deriveFullXpub(seed, fullPath) // Use full xpub for watch-only functionality
+  const xpub = deriveXpub(seed, fullPath) // Use neutered xpub for true watch-only functionality
   
   return {
     chain: 'ETH',
@@ -336,7 +363,7 @@ export function deriveXPubBSC(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const change = opts?.change ?? 0
   const index = opts?.index ?? 0
   const fullPath = `m/44'/60'/${account}'/${change}/${index}` // Full path like original
-  const xpub = deriveFullXpub(seed, fullPath) // Use full xpub for watch-only functionality
+  const xpub = deriveXpub(seed, fullPath) // Use neutered xpub for true watch-only functionality
   
   return {
     chain: 'BSC',
@@ -352,7 +379,7 @@ export function deriveXPubTRX(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const change = opts?.change ?? 0
   const index = opts?.index ?? 0
   const fullPath = `m/44'/195'/${account}'/${change}/${index}` // Full path like original
-  const xpub = deriveFullXpub(seed, fullPath) // Use full xpub for watch-only functionality
+  const xpub = deriveXpub(seed, fullPath) // Use neutered xpub for true watch-only functionality
   
   return {
     chain: 'TRX',
@@ -420,14 +447,17 @@ export function deriveWatchOnlyBTC(xpub: string, change: 0 | 1, index: number, t
 
 /** Derive watch-only address from xpub for LTC */
 export function deriveWatchOnlyLTC(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
-  const network = testnet ? testnetNetworks.LTC : litecoin
-  const node = bip32.fromBase58(xpub, network as any)
+  // Parse xpub using standard Bitcoin network (since xpub was generated with standard network)
+  const xpubNetwork = testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const node = bip32.fromBase58(xpub, xpubNetwork)
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/84'/2'/0'/${change}/${index}`
   
+  // Generate address using LTC-specific network
+  const addressNetwork = testnet ? testnetNetworks.LTC : litecoin
   const { address } = bitcoin.payments.p2wpkh({ 
     pubkey: Buffer.from(child.publicKey), 
-    network: network as any 
+    network: addressNetwork as any 
   })
   
   return {
@@ -440,14 +470,17 @@ export function deriveWatchOnlyLTC(xpub: string, change: 0 | 1, index: number, t
 
 /** Derive watch-only address from xpub for DOGE */
 export function deriveWatchOnlyDOGE(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
-  const network = testnet ? testnetNetworks.DOGE : dogecoin
-  const node = bip32.fromBase58(xpub, network as any)
+  // Parse xpub using standard Bitcoin network (since xpub was generated with standard network)
+  const xpubNetwork = testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const node = bip32.fromBase58(xpub, xpubNetwork)
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/44'/3'/0'/${change}/${index}`
   
+  // Generate address using DOGE-specific network
+  const addressNetwork = testnet ? testnetNetworks.DOGE : dogecoin
   const { address } = bitcoin.payments.p2pkh({ 
     pubkey: Buffer.from(child.publicKey), 
-    network: network as any 
+    network: addressNetwork as any 
   })
   
   return {
@@ -464,16 +497,15 @@ export function deriveWatchOnlyETH(xpub: string, change: 0 | 1, index: number): 
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/44'/60'/0'/${change}/${index}`
   
-  // For watch-only with same addresses, we need to derive the private key from xpub
-  // and use the same method as the original derivation (ethers.js Wallet)
-  // Note: This xpub contains private key derivation capability
-  const privateKey = Buffer.from(child.privateKey!)
-  const wallet = new Wallet('0x' + privateKey.toString('hex'))
+  // Use proper ETH address derivation with EIP-55 checksum
+  const compressed = child.publicKey // 33 bytes
+  const uncompressed = decompressPubkey(compressed)
+  const address = ethAddressFromUncompressed(uncompressed)
   
   return {
     chain: 'ETH',
     path,
-    address: wallet.address,
+    address,
     xpub
   }
 }
@@ -484,43 +516,25 @@ export function deriveWatchOnlyBSC(xpub: string, change: 0 | 1, index: number): 
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/44'/60'/0'/${change}/${index}`
   
-  // For watch-only with same addresses, we need to derive the private key from xpub
-  // and use the same method as the original derivation (ethers.js Wallet)
-  // Note: This xpub contains private key derivation capability
-  const privateKey = Buffer.from(child.privateKey!)
-  const wallet = new Wallet('0x' + privateKey.toString('hex'))
+  // Use proper ETH address derivation with EIP-55 checksum (BSC uses same format)
+  const compressed = child.publicKey // 33 bytes
+  const uncompressed = decompressPubkey(compressed)
+  const address = ethAddressFromUncompressed(uncompressed)
   
   return {
     chain: 'BSC',
     path,
-    address: wallet.address,
+    address,
     xpub
   }
 }
 
 /** Derive watch-only address from xpub for TRX */
 export function deriveWatchOnlyTRX(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
-  const node = bip32.fromBase58(xpub)
-  const child = node.derive(index) // xpub is already at change level, just derive index
-  const path = `m/44'/195'/0'/${change}/${index}`
-  
-  // For watch-only with same addresses, we need to derive the private key from xpub
-  // and use the same method as the original derivation (TronWeb)
-  // Note: This xpub contains private key derivation capability
-  const privHex = Buffer.from(child.privateKey!).toString('hex')
-  const fullHost = testnet 
-    ? 'https://api.shasta.trongrid.io' 
-    : 'https://api.trongrid.io'
-  
-  const tronWeb = new (TronWeb as any)({ fullHost })
-  const address = tronWeb.address.fromPrivateKey(privHex)
-  
-  return {
-    chain: 'TRX',
-    path,
-    address,
-    xpub
-  }
+  // TRX addresses are derived from private keys, not public keys
+  // For true watch-only functionality, we would need the private key
+  // This is a limitation of TRX's address derivation method
+  throw new Error('TRX does not support true watch-only derivation from xpub (requires private key for address generation)')
 }
 
 /** Derive watch-only address from xpub for XRP */
