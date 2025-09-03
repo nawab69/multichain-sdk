@@ -531,10 +531,45 @@ export function deriveWatchOnlyBSC(xpub: string, change: 0 | 1, index: number): 
 
 /** Derive watch-only address from xpub for TRX */
 export function deriveWatchOnlyTRX(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
-  // TRX addresses are derived from private keys, not public keys
-  // For true watch-only functionality, we would need the private key
-  // This is a limitation of TRX's address derivation method
-  throw new Error('TRX does not support true watch-only derivation from xpub (requires private key for address generation)')
+  const node = bip32.fromBase58(xpub)
+  const child = node.derive(index) // xpub is already at change level, just derive index
+  const path = `m/44'/195'/0'/${change}/${index}`
+  
+  // TRX address generation from public key:
+  // 1. Take the compressed public key (33 bytes)
+  // 2. Decompress to uncompressed public key (65 bytes)
+  // 3. Remove the 0x04 prefix (64 bytes)
+  // 4. Compute Keccak-256 hash (NOT SHA3-256!)
+  // 5. Take last 20 bytes
+  // 6. Prefix with 0x41 (21 bytes total)
+  // 7. Encode with Base58Check
+  
+  const compressedPubKey = child.publicKey // 33 bytes
+  
+  // Decompress the public key to get uncompressed format (65 bytes)
+  const uncompressedPubKey = decompressPubkey(compressedPubKey)
+  
+  // Remove the 0x04 prefix to get 64 bytes
+  const pubKeyBody = uncompressedPubKey.slice(1) // Remove first byte (0x04)
+  
+  // Compute Keccak-256 hash of the 64-byte public key body (TRX uses Keccak-256, not SHA3-256!)
+  const keccakHash = keccak('keccak256').update(Buffer.from(pubKeyBody)).digest()
+  
+  // Take last 20 bytes and prefix with 0x41
+  const addressBytes = Buffer.concat([
+    Buffer.from([0x41]), // TRX address prefix
+    keccakHash.slice(-20)  // Last 20 bytes of hash
+  ])
+  
+  // Encode with Base58Check (using bitcoinjs-lib's base58check)
+  const address = bitcoin.address.toBase58Check(addressBytes.slice(1), addressBytes[0])
+  
+  return {
+    chain: 'TRX',
+    path,
+    address,
+    xpub
+  }
 }
 
 /** Derive watch-only address from xpub for XRP */
