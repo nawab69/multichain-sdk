@@ -17,7 +17,8 @@
     "prepack": "npm run build",
     "examples": "node examples/basic-usage.js",
     "examples:advanced": "node examples/advanced-derivation.js",
-    "examples:typescript": "npx tsc examples/typescript-example.ts --target ES2020 --module ES2020 --outDir examples/dist && node examples/dist/typescript-example.js"
+    "examples:typescript": "npx tsc examples/typescript-example.ts --target ES2020 --module ES2020 --outDir examples/dist && node examples/dist/typescript-example.js",
+    "examples:testnet": "node examples/testnet-usage.js"
   },
   "keywords": [
     "bip39",

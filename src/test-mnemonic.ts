@@ -14,13 +14,35 @@ async function main() {
 
   const chains: Chain[] = ['BTC','ETH','BSC','DOGE','LTC','TRX','XRP','SOL']
 
-  console.log('=== ADDRESS DERIVATION RESULTS ===')
+  console.log('=== MAINNET ADDRESS DERIVATION RESULTS ===')
   console.log('')
 
   for (const c of chains) {
-    console.log(`--- ${c} ---`)
+    console.log(`--- ${c} (MAINNET) ---`)
     for (let i = 0; i <= 2; i++) {
       const addr = deriveAddressForChain(c, seed, { account: 0, change: 0, index: i })
+      console.log(`Index ${i}: ${addr.address}`)
+      console.log(`Path: ${addr.path}`)
+      console.log(`Private Key: ${addr.privateKeyHex}`)
+      if (addr.xpub) {
+        console.log(`XPub: ${addr.xpub}`)
+      }
+      console.log('')
+      // For Solana, show the 32-byte private key format
+      if (c === 'SOL' && addr.privateKeyArray) {
+        console.log(`Private Key (32 bytes): ${addr.privateKeyHex}`)
+        console.log(`Private Key Array: [${addr.privateKeyArray.join(', ')}]`)
+      }
+    }
+  }
+
+  console.log('=== TESTNET ADDRESS DERIVATION RESULTS ===')
+  console.log('')
+
+  for (const c of chains) {
+    console.log(`--- ${c} (TESTNET) ---`)
+    for (let i = 0; i <= 2; i++) {
+      const addr = deriveAddressForChain(c, seed, { account: 0, change: 0, index: i, testnet: true })
       console.log(`Index ${i}: ${addr.address}`)
       console.log(`Path: ${addr.path}`)
       console.log(`Private Key: ${addr.privateKeyHex}`)
@@ -42,6 +64,7 @@ async function main() {
   console.log('3. For each chain, verify the private keys match')
   console.log('4. Note: Solana uses Trust Wallet derivation (m/44\'/501\'/account\')')
   console.log('5. Note: BSC and ETH share the same derivation path')
+  console.log('6. Testnet addresses use different networks but same derivation paths')
   console.log('')
   console.log('=== PRIVATE KEY FORMATS ===')
   console.log('BTC/ETH/BSC/DOGE/LTC/TRX/XRP: 64 hex characters (32 bytes)')
@@ -58,6 +81,16 @@ async function main() {
   console.log('✅ TRX: BIP44 Tron (m/44\'/195\'/0\'/0/index)')
   console.log('✅ XRP: BIP44 Ripple (m/44\'/144\'/0\'/0/index)')
   console.log('✅ SOL: Trust Wallet style (m/44\'/501\'/account\')')
+  console.log('')
+  console.log('=== TESTNET NETWORKS ===')
+  console.log('🧪 BTC: Bitcoin Testnet (tb1 addresses)')
+  console.log('🧪 ETH: Sepolia Testnet (same address format)')
+  console.log('🧪 BSC: BSC Testnet (same address format)')
+  console.log('🧪 DOGE: Dogecoin Testnet (different address format)')
+  console.log('🧪 LTC: Litecoin Testnet (tltc addresses)')
+  console.log('🧪 TRX: Shasta Testnet (different API endpoint)')
+  console.log('🧪 XRP: XRP Testnet (same address format)')
+  console.log('🧪 SOL: Solana Devnet (same address format)')
   console.log('')
   console.log('All addresses should match Trust Wallet when using the same mnemonic')
   console.log('All private keys should match Trust Wallet when using the same mnemonic')

@@ -17,6 +17,8 @@ export interface DeriveOpts {
   index?: number
   /** override full derivation path (advanced) */
   customPath?: string
+  /** use testnet instead of mainnet */
+  testnet?: boolean
 }
 
 export interface DerivedAddress {

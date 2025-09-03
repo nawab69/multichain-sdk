@@ -8,7 +8,7 @@ import * as ed25519 from 'ed25519-hd-key'
 import { Keypair, PublicKey } from '@solana/web3.js'
 import { encodeAccountID } from 'ripple-address-codec'
 import { Chain, DeriveOpts, DerivedAddress } from './types.js'
-import { SLIP44, DEFAULT_PURPOSE } from './chains.js'
+import { SLIP44, DEFAULT_PURPOSE, TESTNET_NETWORKS } from './chains.js'
 
 const bip32 = bip32Factory.BIP32Factory(secp)
 
@@ -29,6 +29,24 @@ const dogecoin = {
   pubKeyHash: 0x1e,
   scriptHash: 0x16,
   wif: 0x9e
+}
+
+// Testnet network configurations
+const testnetNetworks = {
+  BTC: bitcoin.networks.testnet,
+  LTC: {
+    ...litecoin,
+    bech32: 'tltc',
+    pubKeyHash: 0x6f,
+    scriptHash: 0x3a,
+    wif: 0xef
+  },
+  DOGE: {
+    ...dogecoin,
+    pubKeyHash: 0x71,
+    scriptHash: 0xc4,
+    wif: 0xf1
+  }
 }
 
 export async function mnemonicToSeed(mnemonic: string, passphrase = ''): Promise<Buffer> {
@@ -66,27 +84,30 @@ function deriveXpub(seed: Buffer, path: string, network?: bitcoin.networks.Netwo
 /** BTC bech32 P2WPKH */
 export function addressBTC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('BTC', opts)
-  const node = deriveNode(seed, path, bitcoin.networks.bitcoin)
-  const { address } = bitcoin.payments.p2wpkh({ pubkey: Buffer.from(node.publicKey), network: bitcoin.networks.bitcoin })
-  const xpub = deriveXpub(seed, path, bitcoin.networks.bitcoin)
+  const network = opts?.testnet ? testnetNetworks.BTC : bitcoin.networks.bitcoin
+  const node = deriveNode(seed, path, network)
+  const { address } = bitcoin.payments.p2wpkh({ pubkey: Buffer.from(node.publicKey), network })
+  const xpub = deriveXpub(seed, path, network)
   return { chain: 'BTC', path, address: address!, privateKeyHex: Buffer.from(node.privateKey!).toString('hex'), xpub }
 }
 
 /** LTC bech32 P2WPKH */
 export function addressLTC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('LTC', opts)
-  const node = deriveNode(seed, path, litecoin as any)
-  const { address } = bitcoin.payments.p2wpkh({ pubkey: Buffer.from(node.publicKey), network: litecoin as any })
-  const xpub = deriveXpub(seed, path, litecoin as any)
+  const network = opts?.testnet ? testnetNetworks.LTC : litecoin
+  const node = deriveNode(seed, path, network as any)
+  const { address } = bitcoin.payments.p2wpkh({ pubkey: Buffer.from(node.publicKey), network: network as any })
+  const xpub = deriveXpub(seed, path, network as any)
   return { chain: 'LTC', path, address: address!, privateKeyHex: Buffer.from(node.privateKey!).toString('hex'), xpub }
 }
 
 /** DOGE legacy P2PKH */
 export function addressDOGE(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('DOGE', opts)
-  const node = deriveNode(seed, path, dogecoin as any)
-  const { address } = bitcoin.payments.p2pkh({ pubkey: Buffer.from(node.publicKey), network: dogecoin as any })
-  const xpub = deriveXpub(seed, path, dogecoin as any)
+  const network = opts?.testnet ? testnetNetworks.DOGE : dogecoin
+  const node = deriveNode(seed, path, network as any)
+  const { address } = bitcoin.payments.p2pkh({ pubkey: Buffer.from(node.publicKey), network: network as any })
+  const xpub = deriveXpub(seed, path, network as any)
   return { chain: 'DOGE', path, address: address!, privateKeyHex: Buffer.from(node.privateKey!).toString('hex'), xpub }
 }
 
@@ -95,9 +116,20 @@ export function addressETH(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('ETH', opts)
   const node = deriveNode(seed, path)
   const priv = '0x' + Buffer.from(node.privateKey!).toString('hex')
+  
+  // For testnet, we can't change the address format, but we can add network info
   const wallet = new Wallet(priv)
   const xpub = deriveXpub(seed, path)
-  return { chain: 'ETH', path, address: wallet.address, privateKeyHex: priv.slice(2), xpub }
+  
+  return { 
+    chain: 'ETH', 
+    path, 
+    address: wallet.address, 
+    privateKeyHex: priv.slice(2), 
+    xpub,
+    // Add testnet indicator if needed
+    ...(opts?.testnet && { testnet: true })
+  }
 }
 
 /** BSC shares the same derivation as ETH; address format is the same */
@@ -107,7 +139,16 @@ export function addressBSC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const priv = '0x' + Buffer.from(node.privateKey!).toString('hex')
   const wallet = new Wallet(priv)
   const xpub = deriveXpub(seed, path)
-  return { chain: 'BSC', path, address: wallet.address, privateKeyHex: priv.slice(2), xpub }
+  
+  return { 
+    chain: 'BSC', 
+    path, 
+    address: wallet.address, 
+    privateKeyHex: priv.slice(2), 
+    xpub,
+    // Add testnet indicator if needed
+    ...(opts?.testnet && { testnet: true })
+  }
 }
 
 /** TRX (Tron) — secp256k1 key, Tron base58 address via tronweb */
@@ -115,10 +156,25 @@ export function addressTRX(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('TRX', opts)
   const node = deriveNode(seed, path)
   const privHex = Buffer.from(node.privateKey!).toString('hex')
-  const tronWeb = new (TronWeb as any)({ fullHost: 'https://api.trongrid.io' })
+  
+  // Use Shasta testnet for testnet, mainnet for production
+  const fullHost = opts?.testnet 
+    ? 'https://api.shasta.trongrid.io' 
+    : 'https://api.trongrid.io'
+  
+  const tronWeb = new (TronWeb as any)({ fullHost })
   const address = tronWeb.address.fromPrivateKey(privHex)
   const xpub = deriveXpub(seed, path)
-  return { chain: 'TRX', path, address, privateKeyHex: privHex, xpub }
+  
+  return { 
+    chain: 'TRX', 
+    path, 
+    address, 
+    privateKeyHex: privHex, 
+    xpub,
+    // Add testnet indicator if needed
+    ...(opts?.testnet && { testnet: true })
+  }
 }
 
 /** XRP — derive secp256k1 pubkey then XRPL classic address (base58 ripple alphabet) */
@@ -133,7 +189,16 @@ export function addressXRP(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const address = encodeAccountID(accountId) // "r..."
 
   const xpub = deriveXpub(seed, path)
-  return { chain: 'XRP', path, address, privateKeyHex: Buffer.from(node.privateKey!).toString('hex'), xpub }
+  
+  return { 
+    chain: 'XRP', 
+    path, 
+    address, 
+    privateKeyHex: Buffer.from(node.privateKey!).toString('hex'), 
+    xpub,
+    // Add testnet indicator if needed
+    ...(opts?.testnet && { testnet: true })
+  }
 }
 
 /** SOL — ed25519 via SLIP-0010 (Trust Wallet style - account level derivation) */
@@ -162,7 +227,9 @@ export function addressSOL(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
       // Trust Wallet format (32-byte private key)
       privateKeyHex, // 64 hex chars (32 bytes)
       // Additional format for compatibility
-      privateKeyArray: Array.from(priv32) // 32-byte array
+      privateKeyArray: Array.from(priv32), // 32-byte array
+      // Add testnet indicator if needed
+      ...(opts?.testnet && { testnet: true })
     }
   } catch (error) {
     throw new Error(`Failed to derive Solana address: ${error}`)

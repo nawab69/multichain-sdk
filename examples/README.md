@@ -71,6 +71,24 @@ node examples/dist/typescript-example.js
 
 ---
 
+### 4. Testnet Usage (`testnet-usage.js`)
+**For developers and testers** - Demonstrates testnet address generation.
+
+**What it demonstrates:**
+- Generating mainnet vs testnet addresses
+- Network-specific differences (BTC tb1 vs bc1, LTC tltc vs ltc1)
+- Same derivation paths, different network parameters
+- Perfect for development and testing environments
+
+**Run it:**
+```bash
+node examples/testnet-usage.js
+```
+
+**Use case:** Development testing, QA environments, learning blockchain networks without real funds.
+
+---
+
 ## 🔧 Example Mnemonics
 
 All examples use **test mnemonics** that are publicly known and safe for demonstration:

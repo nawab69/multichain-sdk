@@ -20,3 +20,15 @@ export const DEFAULT_PURPOSE = {
   XRP: 44,
   SOL: 44   // SLIP-0010 ed25519
 } as const
+
+// Testnet network configurations
+export const TESTNET_NETWORKS = {
+  BTC: 'testnet',
+  LTC: 'testnet',
+  DOGE: 'testnet',
+  ETH: 'sepolia', // or 'goerli'
+  BSC: 'testnet',
+  TRX: 'shasta',
+  XRP: 'testnet',
+  SOL: 'devnet'
+} as const
