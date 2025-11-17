@@ -19,6 +19,8 @@ export interface DeriveOpts {
   customPath?: string
   /** use testnet instead of mainnet */
   testnet?: boolean
+  /** use regtest (local development network) instead of mainnet */
+  regtest?: boolean
 }
 
 export interface DerivedAddress {
@@ -37,8 +39,8 @@ export interface XPubResult {
   chain: Chain
   path: string
   xpub: string
-  /** network type (mainnet/testnet) */
-  network: 'mainnet' | 'testnet'
+  /** network type (mainnet/testnet/regtest) */
+  network: 'mainnet' | 'testnet' | 'regtest'
 }
 
 export interface WatchOnlyAddress {

@@ -6,29 +6,41 @@ export const SLIP44 = {
   LTC: 2,
   TRX: 195,
   XRP: 144,
-  SOL: 501
-} as const
+  SOL: 501,
+} as const;
 
 // Default purposes per chain (you can change to 44'/49'/84' for BTC/LTC)
 export const DEFAULT_PURPOSE = {
-  BTC: 84,  // bech32 P2WPKH
-  LTC: 84,  // bech32 P2WPKH
+  BTC: 84, // bech32 P2WPKH
+  LTC: 84, // bech32 P2WPKH
   DOGE: 44, // legacy P2PKH
   ETH: 44,
   BSC: 44,
   TRX: 44,
   XRP: 44,
-  SOL: 44   // SLIP-0010 ed25519
-} as const
+  SOL: 44, // SLIP-0010 ed25519
+} as const;
 
 // Testnet network configurations
 export const TESTNET_NETWORKS = {
-  BTC: 'testnet',
-  LTC: 'testnet',
-  DOGE: 'testnet',
-  ETH: 'sepolia', // or 'goerli'
-  BSC: 'testnet',
-  TRX: 'shasta',
-  XRP: 'testnet',
-  SOL: 'devnet'
-} as const
+  BTC: "testnet",
+  LTC: "testnet",
+  DOGE: "testnet",
+  ETH: "sepolia", // or 'goerli'
+  BSC: "testnet",
+  TRX: "shasta",
+  XRP: "testnet",
+  SOL: "devnet",
+} as const;
+
+// Regtest network configurations (local development networks)
+export const REGTEST_NETWORKS = {
+  BTC: "regtest",
+  LTC: "regtest",
+  DOGE: "regtest",
+  ETH: "regtest", // local EVM network
+  BSC: "regtest", // local BSC network
+  TRX: "regtest", // local Tron network
+  XRP: "regtest", // local XRPL network
+  SOL: "regtest", // local Solana network
+} as const;

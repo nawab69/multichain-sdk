@@ -11,7 +11,7 @@ import { encodeAccountID } from 'ripple-address-codec'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
 import { keccak256 } from 'ethereum-cryptography/keccak'
 import { Chain, DeriveOpts, DerivedAddress, XPubResult, WatchOnlyAddress } from './types.js'
-import { SLIP44, DEFAULT_PURPOSE, TESTNET_NETWORKS } from './chains.js'
+import { SLIP44, DEFAULT_PURPOSE, TESTNET_NETWORKS, REGTEST_NETWORKS } from './chains.js'
 
 const bip32 = bip32Factory.BIP32Factory(secp)
 
@@ -75,8 +75,42 @@ const testnetNetworks = {
   }
 }
 
+// Regtest network configurations (local development networks)
+const regtestNetworks = {
+  BTC: bitcoin.networks.regtest,
+  LTC: {
+    ...litecoin,
+    bech32: 'rltc', // regtest bech32 prefix
+    pubKeyHash: 0x6f, // same as testnet
+    scriptHash: 0x3a, // same as testnet
+    wif: 0xef // same as testnet
+  },
+  DOGE: {
+    ...dogecoin,
+    pubKeyHash: 0x71, // same as testnet
+    scriptHash: 0xc4, // same as testnet
+    wif: 0xf1 // same as testnet
+  }
+}
+
 export async function mnemonicToSeed(mnemonic: string, passphrase = ''): Promise<Buffer> {
   return bip39.mnemonicToSeed(mnemonic, passphrase)
+}
+
+/** Get the appropriate network for BTC/LTC/DOGE based on opts */
+function getNetwork(chain: 'BTC' | 'LTC' | 'DOGE', opts?: DeriveOpts): bitcoin.networks.Network {
+  if (opts?.regtest) {
+    return regtestNetworks[chain] as any
+  }
+  if (opts?.testnet) {
+    return testnetNetworks[chain] as any
+  }
+  // Mainnet
+  switch (chain) {
+    case 'BTC': return bitcoin.networks.bitcoin
+    case 'LTC': return litecoin as any
+    case 'DOGE': return dogecoin as any
+  }
 }
 
 /** Build standard BIP44/49/84 path m/purpose'/coin'/account'/change/index */
@@ -117,7 +151,7 @@ function deriveFullXpub(seed: Buffer, path: string, network?: bitcoin.networks.N
 /** BTC bech32 P2WPKH */
 export function addressBTC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('BTC', opts)
-  const network = opts?.testnet ? testnetNetworks.BTC : bitcoin.networks.bitcoin
+  const network = getNetwork('BTC', opts)
   const node = deriveNode(seed, path, network)
   const { address } = bitcoin.payments.p2wpkh({ pubkey: Buffer.from(node.publicKey), network })
   const xpub = deriveXpub(seed, path, network)
@@ -127,7 +161,7 @@ export function addressBTC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
 /** LTC bech32 P2WPKH */
 export function addressLTC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('LTC', opts)
-  const network = opts?.testnet ? testnetNetworks.LTC : litecoin
+  const network = getNetwork('LTC', opts)
   const node = deriveNode(seed, path, network as any)
   const { address } = bitcoin.payments.p2wpkh({ pubkey: Buffer.from(node.publicKey), network: network as any })
   const xpub = deriveXpub(seed, path, network as any)
@@ -137,7 +171,7 @@ export function addressLTC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
 /** DOGE legacy P2PKH */
 export function addressDOGE(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const path = buildPath('DOGE', opts)
-  const network = opts?.testnet ? testnetNetworks.DOGE : dogecoin
+  const network = getNetwork('DOGE', opts)
   const node = deriveNode(seed, path, network as any)
   const { address } = bitcoin.payments.p2pkh({ pubkey: Buffer.from(node.publicKey), network: network as any })
   const xpub = deriveXpub(seed, path, network as any)
@@ -160,8 +194,9 @@ export function addressETH(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
     address: wallet.address, 
     privateKeyHex: priv.slice(2), 
     xpub,
-    // Add testnet indicator if needed
-    ...(opts?.testnet && { testnet: true })
+    // Add network indicator if needed
+    ...(opts?.testnet && { testnet: true }),
+    ...(opts?.regtest && { regtest: true })
   }
 }
 
@@ -179,8 +214,9 @@ export function addressBSC(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
     address: wallet.address, 
     privateKeyHex: priv.slice(2), 
     xpub,
-    // Add testnet indicator if needed
-    ...(opts?.testnet && { testnet: true })
+    // Add network indicator if needed
+    ...(opts?.testnet && { testnet: true }),
+    ...(opts?.regtest && { regtest: true })
   }
 }
 
@@ -190,8 +226,10 @@ export function addressTRX(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
   const node = deriveNode(seed, path)
   const privHex = Buffer.from(node.privateKey!).toString('hex')
   
-  // Use Shasta testnet for testnet, mainnet for production
-  const fullHost = opts?.testnet 
+  // Use Shasta testnet for testnet, localhost for regtest, mainnet for production
+  const fullHost = opts?.regtest
+    ? 'http://127.0.0.1:8090' // Default local Tron node
+    : opts?.testnet 
     ? 'https://api.shasta.trongrid.io' 
     : 'https://api.trongrid.io'
   
@@ -205,8 +243,9 @@ export function addressTRX(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
     address, 
     privateKeyHex: privHex, 
     xpub,
-    // Add testnet indicator if needed
-    ...(opts?.testnet && { testnet: true })
+    // Add network indicator if needed
+    ...(opts?.testnet && { testnet: true }),
+    ...(opts?.regtest && { regtest: true })
   }
 }
 
@@ -229,8 +268,9 @@ export function addressXRP(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
     address, 
     privateKeyHex: Buffer.from(node.privateKey!).toString('hex'), 
     xpub,
-    // Add testnet indicator if needed
-    ...(opts?.testnet && { testnet: true })
+    // Add network indicator if needed
+    ...(opts?.testnet && { testnet: true }),
+    ...(opts?.regtest && { regtest: true })
   }
 }
 
@@ -261,8 +301,9 @@ export function addressSOL(seed: Buffer, opts?: DeriveOpts): DerivedAddress {
       privateKeyHex, // 64 hex chars (32 bytes)
       // Additional format for compatibility
       privateKeyArray: Array.from(priv32), // 32-byte array
-      // Add testnet indicator if needed
-      ...(opts?.testnet && { testnet: true })
+      // Add network indicator if needed
+      ...(opts?.testnet && { testnet: true }),
+      ...(opts?.regtest && { regtest: true })
     }
   } catch (error) {
     throw new Error(`Failed to derive Solana address: ${error}`)
@@ -294,14 +335,14 @@ export function deriveXPubBTC(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const change = opts?.change ?? 0
   const index = opts?.index ?? 0
   const fullPath = `m/84'/0'/${account}'/${change}/${index}` // Full path like original
-  const network = opts?.testnet ? testnetNetworks.BTC : bitcoin.networks.bitcoin
+  const network = getNetwork('BTC', opts)
   const xpub = deriveXpub(seed, fullPath, network) // Keep using neutered xpub for BTC
   
   return {
     chain: 'BTC',
     path: fullPath,
     xpub: xpub!,
-    network: opts?.testnet ? 'testnet' : 'mainnet'
+    network: opts?.regtest ? 'regtest' : opts?.testnet ? 'testnet' : 'mainnet'
   }
 }
 
@@ -312,14 +353,14 @@ export function deriveXPubLTC(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const index = opts?.index ?? 0
   const fullPath = `m/84'/2'/${account}'/${change}/${index}` // Full path like original
   // Force use of standard Bitcoin network for xpub derivation to ensure proper neutering
-  const network = opts?.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const network = opts?.regtest ? bitcoin.networks.regtest : opts?.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
   const xpub = deriveXpub(seed, fullPath, network)
   
   return {
     chain: 'LTC',
     path: fullPath,
     xpub: xpub!,
-    network: opts?.testnet ? 'testnet' : 'mainnet'
+    network: opts?.regtest ? 'regtest' : opts?.testnet ? 'testnet' : 'mainnet'
   }
 }
 
@@ -330,14 +371,14 @@ export function deriveXPubDOGE(seed: Buffer, opts?: DeriveOpts): XPubResult {
   const index = opts?.index ?? 0
   const fullPath = `m/44'/3'/${account}'/${change}/${index}` // Full path like original
   // Force use of standard Bitcoin network for xpub derivation to ensure proper neutering
-  const network = opts?.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const network = opts?.regtest ? bitcoin.networks.regtest : opts?.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
   const xpub = deriveXpub(seed, fullPath, network)
   
   return {
     chain: 'DOGE',
     path: fullPath,
     xpub: xpub!,
-    network: opts?.testnet ? 'testnet' : 'mainnet'
+    network: opts?.regtest ? 'regtest' : opts?.testnet ? 'testnet' : 'mainnet'
   }
 }
 
@@ -353,7 +394,7 @@ export function deriveXPubETH(seed: Buffer, opts?: DeriveOpts): XPubResult {
     chain: 'ETH',
     path: fullPath,
     xpub: xpub!,
-    network: opts?.testnet ? 'testnet' : 'mainnet'
+    network: opts?.regtest ? 'regtest' : opts?.testnet ? 'testnet' : 'mainnet'
   }
 }
 
@@ -369,7 +410,7 @@ export function deriveXPubBSC(seed: Buffer, opts?: DeriveOpts): XPubResult {
     chain: 'BSC',
     path: fullPath,
     xpub: xpub!,
-    network: opts?.testnet ? 'testnet' : 'mainnet'
+    network: opts?.regtest ? 'regtest' : opts?.testnet ? 'testnet' : 'mainnet'
   }
 }
 
@@ -385,7 +426,7 @@ export function deriveXPubTRX(seed: Buffer, opts?: DeriveOpts): XPubResult {
     chain: 'TRX',
     path: fullPath,
     xpub: xpub!,
-    network: opts?.testnet ? 'testnet' : 'mainnet'
+    network: opts?.regtest ? 'regtest' : opts?.testnet ? 'testnet' : 'mainnet'
   }
 }
 
@@ -401,7 +442,7 @@ export function deriveXPubXRP(seed: Buffer, opts?: DeriveOpts): XPubResult {
     chain: 'XRP',
     path: fullPath,
     xpub: xpub!,
-    network: opts?.testnet ? 'testnet' : 'mainnet'
+    network: opts?.regtest ? 'regtest' : opts?.testnet ? 'testnet' : 'mainnet'
   }
 }
 
@@ -426,8 +467,8 @@ export function deriveXPubForChain(
 // ===== WATCH-ONLY ADDRESS DERIVATION FUNCTIONS =====
 
 /** Derive watch-only address from xpub for BTC */
-export function deriveWatchOnlyBTC(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
-  const network = testnet ? testnetNetworks.BTC : bitcoin.networks.bitcoin
+export function deriveWatchOnlyBTC(xpub: string, change: 0 | 1, index: number, testnet = false, regtest = false): WatchOnlyAddress {
+  const network = regtest ? regtestNetworks.BTC : testnet ? testnetNetworks.BTC : bitcoin.networks.bitcoin
   const node = bip32.fromBase58(xpub, network)
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/84'/0'/0'/${change}/${index}`
@@ -446,15 +487,15 @@ export function deriveWatchOnlyBTC(xpub: string, change: 0 | 1, index: number, t
 }
 
 /** Derive watch-only address from xpub for LTC */
-export function deriveWatchOnlyLTC(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
+export function deriveWatchOnlyLTC(xpub: string, change: 0 | 1, index: number, testnet = false, regtest = false): WatchOnlyAddress {
   // Parse xpub using standard Bitcoin network (since xpub was generated with standard network)
-  const xpubNetwork = testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const xpubNetwork = regtest ? bitcoin.networks.regtest : testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
   const node = bip32.fromBase58(xpub, xpubNetwork)
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/84'/2'/0'/${change}/${index}`
   
   // Generate address using LTC-specific network
-  const addressNetwork = testnet ? testnetNetworks.LTC : litecoin
+  const addressNetwork = regtest ? regtestNetworks.LTC : testnet ? testnetNetworks.LTC : litecoin
   const { address } = bitcoin.payments.p2wpkh({ 
     pubkey: Buffer.from(child.publicKey), 
     network: addressNetwork as any 
@@ -469,15 +510,15 @@ export function deriveWatchOnlyLTC(xpub: string, change: 0 | 1, index: number, t
 }
 
 /** Derive watch-only address from xpub for DOGE */
-export function deriveWatchOnlyDOGE(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
+export function deriveWatchOnlyDOGE(xpub: string, change: 0 | 1, index: number, testnet = false, regtest = false): WatchOnlyAddress {
   // Parse xpub using standard Bitcoin network (since xpub was generated with standard network)
-  const xpubNetwork = testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  const xpubNetwork = regtest ? bitcoin.networks.regtest : testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
   const node = bip32.fromBase58(xpub, xpubNetwork)
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/44'/3'/0'/${change}/${index}`
   
   // Generate address using DOGE-specific network
-  const addressNetwork = testnet ? testnetNetworks.DOGE : dogecoin
+  const addressNetwork = regtest ? regtestNetworks.DOGE : testnet ? testnetNetworks.DOGE : dogecoin
   const { address } = bitcoin.payments.p2pkh({ 
     pubkey: Buffer.from(child.publicKey), 
     network: addressNetwork as any 
@@ -530,7 +571,7 @@ export function deriveWatchOnlyBSC(xpub: string, change: 0 | 1, index: number): 
 }
 
 /** Derive watch-only address from xpub for TRX */
-export function deriveWatchOnlyTRX(xpub: string, change: 0 | 1, index: number, testnet = false): WatchOnlyAddress {
+export function deriveWatchOnlyTRX(xpub: string, change: 0 | 1, index: number, testnet = false, regtest = false): WatchOnlyAddress {
   const node = bip32.fromBase58(xpub)
   const child = node.derive(index) // xpub is already at change level, just derive index
   const path = `m/44'/195'/0'/${change}/${index}`
@@ -597,15 +638,16 @@ export function deriveWatchOnlyAddress(
   xpub: string,
   change: 0 | 1,
   index: number,
-  testnet = false
+  testnet = false,
+  regtest = false
 ): WatchOnlyAddress {
   switch (chain) {
-    case 'BTC': return deriveWatchOnlyBTC(xpub, change, index, testnet)
-    case 'LTC': return deriveWatchOnlyLTC(xpub, change, index, testnet)
-    case 'DOGE': return deriveWatchOnlyDOGE(xpub, change, index, testnet)
+    case 'BTC': return deriveWatchOnlyBTC(xpub, change, index, testnet, regtest)
+    case 'LTC': return deriveWatchOnlyLTC(xpub, change, index, testnet, regtest)
+    case 'DOGE': return deriveWatchOnlyDOGE(xpub, change, index, testnet, regtest)
     case 'ETH': return deriveWatchOnlyETH(xpub, change, index)
     case 'BSC': return deriveWatchOnlyBSC(xpub, change, index)
-    case 'TRX': return deriveWatchOnlyTRX(xpub, change, index, testnet)
+    case 'TRX': return deriveWatchOnlyTRX(xpub, change, index, testnet, regtest)
     case 'XRP': return deriveWatchOnlyXRP(xpub, change, index)
     case 'SOL': throw new Error('Solana does not support watch-only derivation (uses ed25519)')
   }
